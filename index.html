@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">محرر الويب المباشر</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+    </style>
+</head>
+<body id="body-root" class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden transition-colors duration-300">
+
+    <!-- Header -->
+    <header id="header-root" class="bg-slate-900 border-b border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-md z-20 transition-colors duration-300">
+        
+        <!-- 1. اللوجو (يمين الشاشة) -->
+        <div class="flex items-center gap-2">
+            <div class="bg-gradient-to-tr from-indigo-600 to-violet-500 p-1.5 rounded-xl text-white shadow-lg shrink-0">
+                <i class="fa-solid fa-code text-xs"></i>
+            </div>
+            <h1 id="app-main-title" class="font-bold text-xs sm:text-sm tracking-wide" data-i18n="app_title">محرر الويب المباشر</h1>
+        </div>
+
+        <!-- 2. أدوات التنقل والأكواد والوضع (منتصف الشاشة) -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+            <div id="tabs-container" class="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex items-center transition-colors duration-300">
+                <button type="button" id="tab-preview" onclick="switchTab('preview')" class="px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-medium text-slate-400 cursor-pointer transition" data-i18n="preview_tab">المعاينة</button>
+                <button type="button" id="tab-code" onclick="switchTab('code')" class="px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-medium bg-indigo-600 text-white transition cursor-pointer" data-i18n="code_tab">الأكواد</button>
+                <button type="button" id="tab-projects" onclick="switchTab('projects')" class="px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-medium text-slate-400 cursor-pointer transition" data-i18n="projects_tab">المشاريع</button>
+            </div>
+
+            <div id="mode-select-box" class="flex items-center gap-1 bg-slate-950 px-1.5 py-1 rounded-lg border border-slate-800 transition-colors duration-300">
+                <select id="mode-select" onchange="changeMode(this.value)" class="bg-transparent text-[10px] sm:text-[11px] focus:outline-none cursor-pointer font-medium max-w-[80px] sm:max-w-none truncate">
+                    <option value="triple" class="mode-opt bg-slate-900 text-white" data-i18n="mode_triple">متعددة نصية</option>
+                    <option value="single-text" class="mode-opt bg-slate-900 text-white" data-i18n="mode_single_text">نص شامل</option>
+                    <option value="single-file" class="mode-opt bg-slate-900 text-white" data-i18n="mode_single_file">ملف شامل</option>
+                    <option value="multi-files" class="mode-opt bg-slate-900 text-white" data-i18n="mode_multi_files">ملفات منفصلة</option>
+                </select>
+                <i class="fa-solid fa-layer-group text-[9px] text-indigo-400"></i>
+            </div>
+
+            <div class="flex items-center gap-1">
+                <button type="button" id="theme-toggle-btn" onclick="toggleTheme()" class="theme-ctrl-btn rounded-lg border transition cursor-pointer text-xs w-8 h-8 flex items-center justify-center shrink-0" title="تبديل الوضع (مسائي / صباحي)">
+                    <i class="fa-solid fa-moon" id="theme-icon"></i>
+                </button>
+                <button type="button" id="lang-toggle-btn" onclick="toggleLanguage()" class="lang-ctrl-btn rounded-lg border transition cursor-pointer text-[10px] sm:text-[11px] font-bold w-8 h-8 flex items-center justify-center shrink-0" title="تبديل اللغة (عربي / English)">
+                    <span id="lang-label">EN</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. الأزرار الرئيسية الموحدة (يسار الشاشة) -->
+        <div class="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 sm:pb-0">
+            <button type="button" onclick="downloadFile()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-20 sm:w-24 py-1.5 rounded-lg text-[11px] font-medium transition shadow flex items-center justify-center gap-1 shrink-0 cursor-pointer">
+                <i class="fa-solid fa-download"></i> <span data-i18n="download">تحميل</span>
+            </button>
+            <button type="button" onclick="shareProjectFile()" class="bg-violet-600 hover:bg-violet-500 text-white w-20 sm:w-24 py-1.5 rounded-lg text-[11px] font-medium transition shadow flex items-center justify-center gap-1 shrink-0 cursor-pointer">
+                <i class="fa-solid fa-share-nodes"></i> <span data-i18n="share">مشاركة</span>
+            </button>
+            <button type="button" onclick="openSaveModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white w-20 sm:w-24 py-1.5 rounded-lg text-[11px] font-medium transition shadow flex items-center justify-center gap-1 shrink-0 cursor-pointer">
+                <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="save">حفظ</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 overflow-hidden relative w-full flex">
+        
+        <!-- 1. Preview Pane -->
+        <div id="pane-preview" class="absolute inset-0 hidden flex-col z-10">
+            <div id="preview-topbar" class="border-b px-3 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 transition-colors duration-300">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <button type="button" onclick="updatePreview()" class="text-xs p-1.5 cursor-pointer rounded transition" id="refresh-btn" title="تحديث المعاينة"><i class="fa-solid fa-rotate-right"></i></button>
+                    <!-- زر نسخ الكود الكامل بشكل مستقل بجانب المعاينة -->
+                    <button type="button" onclick="copyFullCode()" class="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1 rounded text-[11px] font-medium transition flex items-center gap-1 cursor-pointer shadow">
+                        <i class="fa-solid fa-copy"></i> <span data-i18n="copy_code">نسخ الكود الكامل</span>
+                    </button>
+                    <div id="device-buttons-box" class="p-0.5 rounded-lg border hidden sm:flex items-center gap-1 transition-colors duration-300">
+                        <button type="button" onclick="setDeviceSize('phone')" id="device-btn-phone" class="device-tab-btn px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer flex items-center gap-1"><i class="fa-solid fa-mobile-screen"></i> <span data-i18n="dev_phone">جوال</span></button>
+                        <button type="button" onclick="setDeviceSize('ipad')" id="device-btn-ipad" class="device-tab-btn px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer flex items-center gap-1"><i class="fa-solid fa-tablet-screen-button"></i> <span data-i18n="dev_ipad">آيباد</span></button>
+                        <button type="button" onclick="setDeviceSize('laptop')" id="device-btn-laptop" class="device-tab-btn px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer flex items-center gap-1"><i class="fa-solid fa-laptop"></i> <span data-i18n="dev_laptop">لابتوب</span></button>
+                        <button type="button" onclick="setDeviceSize('desktop')" id="device-btn-desktop" class="device-tab-btn px-2.5 py-1 rounded text-[11px] font-medium bg-indigo-600 text-white transition cursor-pointer flex items-center gap-1"><i class="fa-solid fa-desktop"></i> <span data-i18n="dev_desktop">كمبيوتر</span></button>
+                    </div>
+                </div>
+                <span class="text-xs font-medium flex items-center gap-1" id="preview-label-text">
+                    <span data-i18n="live_preview">المعاينة المباشرة</span> <i class="fa-solid fa-eye text-emerald-400"></i>
+                </span>
+            </div>
+            <div id="preview-container" class="flex-1 flex items-center justify-center p-2 sm:p-4 overflow-auto transition-all">
+                <div id="device-wrapper" class="w-full h-full bg-white transition-all shadow-xl flex flex-col">
+                    <iframe id="preview-frame" class="w-full flex-1 border-0 bg-white" sandbox="allow-scripts allow-modals allow-same-origin"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Editors Pane -->
+        <div id="pane-code" class="absolute inset-0 flex flex-col z-10">
+            <div id="box-triple" class="flex-1 flex flex-col lg:flex-row p-2 sm:p-3 gap-2.5 overflow-y-auto">
+                <div class="flex-1 flex flex-col min-h-[160px]">
+                    <span class="text-[11px] font-semibold text-orange-400 mb-1 text-left"><i class="fa-brands fa-html5"></i> HTML</span>
+                    <textarea id="tr-html" oninput="updatePreview()" class="editor-textarea flex-1 p-2.5 rounded-xl border focus:border-orange-500 focus:outline-none font-mono text-xs resize-none text-left" dir="ltr" placeholder="اكتب هيكل HTML..."></textarea>
+                </div>
+                <div class="flex-1 flex flex-col min-h-[160px]">
+                    <span class="text-[11px] font-semibold text-cyan-400 mb-1 text-left"><i class="fa-brands fa-css3-alt"></i> CSS</span>
+                    <textarea id="tr-css" oninput="updatePreview()" class="editor-textarea flex-1 p-2.5 rounded-xl border focus:border-cyan-500 focus:outline-none font-mono text-xs resize-none text-left" dir="ltr" placeholder="اكتب قواعد CSS..."></textarea>
+                </div>
+                <div class="flex-1 flex flex-col min-h-[160px]">
+                    <span class="text-[11px] font-semibold text-yellow-400 mb-1 text-left"><i class="fa-brands fa-js"></i> JS</span>
+                    <textarea id="tr-js" oninput="updatePreview()" class="editor-textarea flex-1 p-2.5 rounded-xl border focus:border-yellow-500 focus:outline-none font-mono text-xs resize-none text-left" dir="ltr" placeholder="اكتب كود JS..."></textarea>
+                </div>
+            </div>
+
+            <div id="box-single-text" class="flex-1 hidden flex-col p-3 sm:p-4">
+                <span class="text-[11px] font-semibold text-indigo-400 mb-1.5 text-left"><i class="fa-solid fa-code"></i> <span data-i18n="single_html_text">نص HTML شامل</span></span>
+                <textarea id="st-code" oninput="updatePreview()" class="editor-textarea flex-1 p-3 sm:p-4 rounded-xl border focus:border-indigo-500 focus:outline-none font-mono text-xs resize-none leading-relaxed text-left" dir="ltr" placeholder="<!DOCTYPE html>..."></textarea>
+            </div>
+
+            <div id="box-single-file" class="flex-1 hidden flex-col p-4 justify-center items-center text-center">
+                <div id="upload-box-single" class="w-full max-w-md border-2 border-dashed p-6 sm:p-8 rounded-2xl transition flex flex-col items-center cursor-pointer relative">
+                    <input type="file" accept=".html,.htm" onchange="uploadSingleFile(event)" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <div class="bg-indigo-600/20 text-indigo-400 p-3 sm:p-4 rounded-full mb-3 text-xl sm:text-2xl"><i class="fa-solid fa-file-arrow-up"></i></div>
+                    <h3 class="font-bold text-xs sm:text-sm mb-1" data-i18n="choose_html_file">اختر ملف HTML من جهازك</h3>
+                    <p class="text-[11px] sm:text-xs text-slate-400" data-i18n="upload_hint">انقر للرفع وسيتم عرضه في المعاينة فوراً</p>
+                </div>
+                <div id="file-status" class="mt-4 text-xs text-emerald-400 font-medium hidden"></div>
+            </div>
+
+            <div id="box-multi-files" class="flex-1 hidden flex-col lg:flex-row p-3 sm:p-4 gap-3 overflow-y-auto">
+                <div class="multi-card flex-1 flex flex-col border rounded-xl p-4 text-center justify-between relative transition min-h-[120px]">
+                    <input type="file" accept=".html,.htm" onchange="uploadMultiFile(event, 'html')" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <div>
+                        <div class="text-orange-400 text-xl sm:text-2xl mb-1.5"><i class="fa-brands fa-html5"></i></div>
+                        <h4 class="font-bold text-xs">ملف HTML</h4>
+                    </div>
+                    <div id="status-mf-html" class="mt-2 text-xs py-1 px-2 rounded truncate" data-i18n="no_file">لم يتم اختيار ملف</div>
+                </div>
+                <div class="multi-card flex-1 flex flex-col border rounded-xl p-4 text-center justify-between relative transition min-h-[120px]">
+                    <input type="file" accept=".css" onchange="uploadMultiFile(event, 'css')" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <div>
+                        <div class="text-cyan-400 text-xl sm:text-2xl mb-1.5"><i class="fa-brands fa-css3-alt"></i></div>
+                        <h4 class="font-bold text-xs">ملف CSS</h4>
+                    </div>
+                    <div id="status-mf-css" class="mt-2 text-xs py-1 px-2 rounded truncate" data-i18n="no_file">لم يتم اختيار ملف</div>
+                </div>
+                <div class="multi-card flex-1 flex flex-col border rounded-xl p-4 text-center justify-between relative transition min-h-[120px]">
+                    <input type="file" accept=".js" onchange="uploadMultiFile(event, 'js')" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <div>
+                        <div class="text-yellow-400 text-xl sm:text-2xl mb-1.5"><i class="fa-brands fa-js"></i></div>
+                        <h4 class="font-bold text-xs">ملف JS</h4>
+                    </div>
+                    <div id="status-mf-js" class="mt-2 text-xs py-1 px-2 rounded truncate" data-i18n="no_file">لم يتم اختيار ملف</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Projects Pane -->
+        <div id="pane-projects" class="absolute inset-0 hidden flex-col z-10">
+            <div id="projects-topbar" class="p-3 border-b flex flex-wrap items-center justify-between gap-2 transition-colors duration-300">
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="openDeleteAllModal()" title="حذف جميع المشاريع" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs transition flex items-center gap-1 cursor-pointer">
+                        <i class="fa-solid fa-trash-can"></i> <span data-i18n="clear_all">مسح الكل</span>
+                    </button>
+                    <span id="projects-count" class="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <div class="relative flex-1 min-w-[140px] max-w-sm">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <input type="text" id="search-input" oninput="filterProjects()" data-i18n-placeholder="search_placeholder" placeholder="ابحث في المشاريع المحفوظة..." class="w-full text-xs p-1.5 rounded-lg border focus:outline-none focus:border-indigo-500 text-right">
+                </div>
+                <span class="text-xs font-bold flex items-center gap-1">
+                    <span data-i18n="saved_projects_title">المشاريع المحفوظة</span> <i class="fa-solid fa-folder-open text-amber-400"></i>
+                </span>
+            </div>
+            <div id="projects-list" class="flex-1 p-3 sm:p-4 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 content-start"></div>
+        </div>
+
+    </main>
+
+    <!-- Save Modal Dialog -->
+    <div id="save-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div id="modal-box-1" class="border rounded-2xl w-full max-w-sm p-4 shadow-2xl transition-colors duration-300">
+            <h3 class="font-bold text-xs mb-2.5 flex items-center justify-end gap-1.5">
+                <span data-i18n="save_new_project">حفظ المشروع الجديد</span> <i class="fa-solid fa-floppy-disk text-emerald-400"></i>
+            </h3>
+            <label class="block text-[11px] text-slate-400 mb-1 text-right" data-i18n="project_name">اسم المشروع</label>
+            <input type="text" id="project-name-input" class="modal-input w-full text-xs p-2 rounded-xl border focus:outline-none focus:border-emerald-500 mb-3 text-right" placeholder="اسم المشروع...">
+            <div class="flex items-center justify-between gap-2">
+                <button type="button" onclick="saveCurrentProject()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition shadow cursor-pointer" data-i18n="save">حفظ</button>
+                <button type="button" onclick="closeSaveModal()" class="modal-cancel-btn px-3 py-1.5 rounded-xl text-xs transition cursor-pointer" data-i18n="cancel">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete All Confirmation Modal Dialog -->
+    <div id="delete-all-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div id="modal-box-2" class="border rounded-2xl w-full max-w-sm p-4 shadow-2xl transition-colors duration-300">
+            <h3 class="font-bold text-xs mb-2 flex items-center justify-end gap-1.5 text-red-400">
+                <span data-i18n="warning_title">تحذير: حذف كافة المشاريع</span> <i class="fa-solid fa-triangle-exclamation"></i>
+            </h3>
+            <p class="text-[11px] mb-4 leading-relaxed text-right" data-i18n="warning_desc">
+                هل أنت متأكد من رغبتك في حذف جميع المشاريع المحفوظة؟ لا يمكن التراجع عن هذا الإجراء نهائياً.
+            </p>
+            <div class="flex items-center justify-between gap-2">
+                <button type="button" onclick="confirmDeleteAllProjects()" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition shadow cursor-pointer" data-i18n="confirm_delete">تأكيد الحذف</button>
+                <button type="button" onclick="closeDeleteAllModal()" class="modal-cancel-btn px-3 py-1.5 rounded-xl text-xs transition cursor-pointer" data-i18n="cancel">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-xl shadow-2xl border text-[11px] font-medium opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-1.5">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-text">تم</span>
+    </div>
+
+    <script>
+        let mode = 'triple';
+        let uploadedHtml = '<h1>مرحباً بك في المعاينة</h1>';
+        let multiFilesData = { html: '', css: '', js: '' };
+        let projects = JSON.parse(localStorage.getItem('web_projects') || '[]');
+        let currentTheme = localStorage.getItem('web_theme') || 'dark';
+        let currentLang = localStorage.getItem('web_lang') || 'ar';
+
+        const translations = {
+            ar: {
+                download: "تحميل",
+                share: "مشاركة",
+                save: "حفظ",
+                preview_tab: "المعاينة",
+                code_tab: "الأكواد",
+                projects_tab: "المشاريع",
+                mode_triple: "متعددة نصية",
+                mode_single_text: "نص شامل",
+                mode_single_file: "ملف شامل",
+                mode_multi_files: "ملفات منفصلة",
+                app_title: "محرر الويب المباشر",
+                live_preview: "المعاينة المباشرة",
+                dev_phone: "جوال",
+                dev_ipad: "آيباد",
+                dev_laptop: "لابتوب",
+                dev_desktop: "كمبيوتر",
+                copy_code: "نسخ الكود الكامل",
+                single_html_text: "نص HTML شامل",
+                choose_html_file: "اختر ملف HTML من جهازك",
+                upload_hint: "انقر للرفع وسيتم عرضه في المعاينة فوراً",
+                no_file: "لم يتم اختيار ملف",
+                clear_all: "مسح الكل",
+                search_placeholder: "ابحث في المشاريع المحفوظة...",
+                saved_projects_title: "المشاريع المحفوظة",
+                save_new_project: "حفظ المشروع الجديد",
+                project_name: "اسم المشروع",
+                cancel: "إلغاء",
+                warning_title: "تحذير: حذف كافة المشاريع",
+                warning_desc: "هل أنت متأكد من رغبتك في حذف جميع المشاريع المحفوظة؟ لا يمكن التراجع عن هذا الإجراء نهائياً.",
+                confirm_delete: "تأكيد الحذف",
+                no_saved_projects: "لا توجد مشاريع محفوظة"
+            },
+            en: {
+                download: "Download",
+                share: "Share",
+                save: "Save",
+                preview_tab: "Preview",
+                code_tab: "Code",
+                projects_tab: "Projects",
+                mode_triple: "Triple Text",
+                mode_single_text: "Single Text",
+                mode_single_file: "Single File",
+                mode_multi_files: "Multi Files",
+                app_title: "Live Web Editor",
+                live_preview: "Live Preview",
+                dev_phone: "Phone",
+                dev_ipad: "iPad",
+                dev_laptop: "Laptop",
+                dev_desktop: "Desktop",
+                copy_code: "Copy Full Code",
+                single_html_text: "Full HTML Text",
+                choose_html_file: "Choose HTML file from device",
+                upload_hint: "Click to upload and view immediately",
+                no_file: "No file chosen",
+                clear_all: "Clear All",
+                search_placeholder: "Search saved projects...",
+                saved_projects_title: "Saved Projects",
+                save_new_project: "Save New Project",
+                project_name: "Project Name",
+                cancel: "Cancel",
+                warning_title: "Warning: Delete All Projects",
+                warning_desc: "Are you sure you want to delete all saved projects? This action cannot be undone.",
+                confirm_delete: "Confirm Delete",
+                no_saved_projects: "No saved projects found"
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('tr-html').value = '<div class="card">\n  <h2>أهلاً بك يا جواد</h2>\n  <p>تم تفعيل مشاركة الملف الشامل وزر نسخ الكود المستقل</p>\n</div>';
+            document.getElementById('tr-css').value = 'body { background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }\n.card { background: #1e293b; padding: 25px; border-radius: 12px; text-align: center; }\nh2 { color: #818cf8; }';
+            document.getElementById('tr-js').value = 'console.log("يعمل بنجاح!");';
+            
+            applyTheme(currentTheme, false);
+            applyLanguage(currentLang, false);
+            updatePreview();
+            renderProjects();
+            switchTab('code');
+        });
+
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('web_theme', currentTheme);
+            applyTheme(currentTheme, true);
+        }
+
+        function applyTheme(theme, showMsg) {
+            const body = document.getElementById('body-root');
+            const header = document.getElementById('header-root');
+            const themeIcon = document.getElementById('theme-icon');
+            const themeToggleBtn = document.getElementById('theme-toggle-btn');
+            const langToggleBtn = document.getElementById('lang-toggle-btn');
+            const tabsContainer = document.getElementById('tabs-container');
+            const modeSelectBox = document.getElementById('mode-select-box');
+            const modeSelect = document.getElementById('mode-select');
+            const previewTopbar = document.getElementById('preview-topbar');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const deviceButtonsBox = document.getElementById('device-buttons-box');
+            const projectsTopbar = document.getElementById('projects-topbar');
+            const searchInput = document.getElementById('search-input');
+            const modalBox1 = document.getElementById('modal-box-1');
+            const modalBox2 = document.getElementById('modal-box-2');
+            const toast = document.getElementById('toast');
+            const uploadBoxSingle = document.getElementById('upload-box-single');
+
+            if (theme === 'light') {
+                themeIcon.className = "fa-solid fa-sun";
+                body.className = "bg-slate-100 text-slate-900 h-[100dvh] flex flex-col overflow-hidden transition-colors duration-300";
+                header.className = "bg-white border-b border-slate-200 px-3 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-20 transition-colors duration-300";
+                
+                themeToggleBtn.className = "theme-ctrl-btn rounded-lg border border-slate-300 bg-slate-200 text-amber-600 hover:bg-slate-300 transition cursor-pointer text-xs w-8 h-8 flex items-center justify-center shrink-0";
+                langToggleBtn.className = "lang-ctrl-btn rounded-lg border border-slate-300 bg-slate-200 text-slate-900 hover:bg-slate-300 transition cursor-pointer text-[10px] sm:text-[11px] font-bold w-8 h-8 flex items-center justify-center shrink-0";
+                
+                tabsContainer.className = "bg-slate-200 p-0.5 rounded-lg border border-slate-300 flex items-center transition-colors duration-300";
+                modeSelectBox.className = "flex items-center gap-1 bg-slate-200 px-1.5 py-1 rounded-lg border border-slate-300 transition-colors duration-300";
+                modeSelect.className = "bg-transparent text-[10px] sm:text-[11px] text-slate-900 focus:outline-none cursor-pointer font-medium";
+                previewTopbar.className = "bg-white border-b border-slate-200 px-3 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 transition-colors duration-300";
+                refreshBtn.className = "text-slate-600 hover:text-slate-900 text-xs p-1.5 cursor-pointer bg-slate-200 hover:bg-slate-300 rounded transition";
+                deviceButtonsBox.className = "p-0.5 rounded-lg border border-slate-300 bg-slate-200 hidden sm:flex items-center gap-1 transition-colors duration-300";
+                projectsTopbar.className = "p-3 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-2 transition-colors duration-300";
+                searchInput.className = "w-full bg-slate-100 text-xs text-slate-900 pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:border-indigo-500 text-right";
+                modalBox1.className = "bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-4 shadow-2xl transition-colors duration-300";
+                modalBox2.className = "bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-4 shadow-2xl transition-colors duration-300";
+                toast.className = "fixed bottom-6 left-1/2 -translate-x-1/2 bg-white text-slate-900 px-3 py-1.5 rounded-xl shadow-2xl border border-slate-200 text-[11px] font-medium opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-1.5";
+                uploadBoxSingle.className = "w-full max-w-md bg-slate-50 border-2 border-dashed border-slate-300 hover:border-indigo-500 p-6 sm:p-8 rounded-2xl transition flex flex-col items-center cursor-pointer relative";
+                
+                document.querySelectorAll('.device-tab-btn').forEach(el => {
+                    if(!el.classList.contains('bg-indigo-600')) {
+                        el.className = "device-tab-btn px-2.5 py-1 rounded text-[11px] font-medium text-slate-700 hover:text-slate-900 transition cursor-pointer flex items-center gap-1";
+                    }
+                });
+                document.querySelectorAll('.editor-textarea').forEach(el => {
+                    el.className = "editor-textarea flex-1 bg-slate-50 text-slate-900 p-2.5 sm:p-3 rounded-xl border border-slate-300 focus:border-indigo-500 focus:outline-none font-mono text-xs resize-none text-left";
+                });
+                document.querySelectorAll('.multi-card').forEach(el => {
+                    el.className = "multi-card flex-1 flex flex-col bg-slate-50 border border-slate-200 rounded-xl p-4 text-center justify-between relative hover:border-indigo-500/50 transition min-h-[120px]";
+                });
+                document.querySelectorAll('.modal-input').forEach(el => {
+                    el.className = "modal-input w-full bg-slate-100 text-xs text-slate-900 p-2 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 mb-3 text-right";
+                });
+                document.querySelectorAll('.modal-cancel-btn').forEach(el => {
+                    el.className = "modal-cancel-btn bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-xl text-xs transition cursor-pointer";
+                });
+
+                if(showMsg) showToast(currentLang === 'ar' ? 'تم التبديل للوضع الصباحي' : 'Switched to Morning Mode');
+            } else {
+                themeIcon.className = "fa-solid fa-moon";
+                body.className = "bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden transition-colors duration-300";
+                header.className = "bg-slate-900 border-b border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-md z-20 transition-colors duration-300";
+                
+                themeToggleBtn.className = "theme-ctrl-btn rounded-lg border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 transition cursor-pointer text-xs w-8 h-8 flex items-center justify-center shrink-0";
+                langToggleBtn.className = "lang-ctrl-btn rounded-lg border border-slate-700 bg-slate-800 text-white hover:bg-slate-700 transition cursor-pointer text-[10px] sm:text-[11px] font-bold w-8 h-8 flex items-center justify-center shrink-0";
+                
+                tabsContainer.className = "bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex items-center transition-colors duration-300";
+                modeSelectBox.className = "flex items-center gap-1 bg-slate-950 px-1.5 py-1 rounded-lg border border-slate-800 transition-colors duration-300";
+                modeSelect.className = "bg-transparent text-[10px] sm:text-[11px] text-white focus:outline-none cursor-pointer font-medium";
+                previewTopbar.className = "bg-slate-900 border-b border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 transition-colors duration-300";
+                refreshBtn.className = "text-slate-300 hover:text-white text-xs p-1.5 cursor-pointer bg-slate-800 hover:bg-slate-700 rounded transition";
+                deviceButtonsBox.className = "p-0.5 rounded-lg border border-slate-800 bg-slate-950 hidden sm:flex items-center gap-1 transition-colors duration-300";
+                projectsTopbar.className = "p-3 border-b border-slate-800 bg-slate-900 flex flex-wrap items-center justify-between gap-2 transition-colors duration-300";
+                searchInput.className = "w-full bg-slate-950 text-xs text-slate-200 pl-8 pr-3 py-1.5 rounded-lg border border-slate-800 focus:outline-none focus:border-indigo-500 text-right";
+                modalBox1.className = "bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-4 shadow-2xl transition-colors duration-300";
+                modalBox2.className = "bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-4 shadow-2xl transition-colors duration-300";
+                toast.className = "fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-slate-100 px-3 py-1.5 rounded-xl shadow-2xl border border-slate-800 text-[11px] font-medium opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-1.5";
+                uploadBoxSingle.className = "w-full max-w-md bg-slate-950 border-2 border-dashed border-slate-800 hover:border-indigo-500 p-6 sm:p-8 rounded-2xl transition flex flex-col items-center cursor-pointer relative";
+                
+                document.querySelectorAll('.device-tab-btn').forEach(el => {
+                    if(!el.classList.contains('bg-indigo-600')) {
+                        el.className = "device-tab-btn px-2.5 py-1 rounded text-[11px] font-medium text-slate-300 hover:text-white transition cursor-pointer flex items-center gap-1";
+                    }
+                });
+                document.querySelectorAll('.editor-textarea').forEach(el => {
+                    el.className = "editor-textarea flex-1 bg-slate-950 text-slate-200 p-2.5 sm:p-3 rounded-xl border border-slate-800 focus:border-indigo-500 focus:outline-none font-mono text-xs resize-none text-left";
+                });
+                document.querySelectorAll('.multi-card').forEach(el => {
+                    el.className = "multi-card flex-1 flex flex-col bg-slate-950 border border-slate-800 rounded-xl p-4 text-center justify-between relative hover:border-orange-500/50 transition min-h-[120px]";
+                });
+                document.querySelectorAll('.modal-input').forEach(el => {
+                    el.className = "modal-input w-full bg-slate-950 text-xs text-slate-200 p-2 rounded-xl border border-slate-800 focus:outline-none focus:border-emerald-500 mb-3 text-right";
+                });
+                document.querySelectorAll('.modal-cancel-btn').forEach(el => {
+                    el.className = "modal-cancel-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs transition cursor-pointer";
+                });
+
+                if(showMsg) showToast(currentLang === 'ar' ? 'تم التبديل للوضع المسائي' : 'Switched to Evening Mode');
+            }
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            localStorage.setItem('web_lang', currentLang);
+            applyLanguage(currentLang, true);
+        }
+
+        function applyLanguage(lang, showMsg) {
+            const htmlRoot = document.getElementById('html-root');
+            const langLabel = document.getElementById('lang-label');
+            
+            if (lang === 'en') {
+                htmlRoot.setAttribute('lang', 'en');
+                htmlRoot.setAttribute('dir', 'ltr');
+                langLabel.innerText = 'AR';
+            } else {
+                htmlRoot.setAttribute('lang', 'ar');
+                htmlRoot.setAttribute('dir', 'rtl');
+                langLabel.innerText = 'EN';
+            }
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.innerText = translations[lang][key];
+                }
+            });
+
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[lang][key]) {
+                    el.setAttribute('placeholder', translations[lang][key]);
+                }
+            });
+
+            renderProjects();
+            if(showMsg) showToast(lang === 'en' ? 'Switched to English' : 'تم التحويل إلى اللغة العربية');
+        }
+
+        function changeMode(newMode) {
+            mode = newMode;
+            ['triple', 'single-text', 'single-file', 'multi-files'].forEach(m => {
+                const el = document.getElementById('box-' + m);
+                if(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+            });
+            const target = document.getElementById('box-' + mode);
+            if(target) { target.classList.remove('hidden'); target.classList.add('flex'); }
+            updatePreview();
+            showToast(currentLang === 'ar' ? 'تم تغيير النمط' : 'Mode changed');
+        }
+
+        function setDeviceSize(type) {
+            const wrapper = document.getElementById('device-wrapper');
+            ['phone', 'ipad', 'laptop', 'desktop'].forEach(d => {
+                const btn = document.getElementById('device-btn-' + d);
+                if(btn) {
+                    btn.className = "device-tab-btn px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer flex items-center gap-1 " + (currentTheme === 'light' ? 'text-slate-700 hover:text-slate-900' : 'text-slate-300 hover:text-white');
+                }
+            });
+
+            const activeBtn = document.getElementById('device-btn-' + type);
+            if(activeBtn) {
+                activeBtn.className = "device-tab-btn px-2.5 py-1 rounded text-[11px] font-medium bg-indigo-600 text-white transition cursor-pointer flex items-center gap-1";
+            }
+
+            if (type === 'phone') {
+                wrapper.style.width = '320px';
+                wrapper.style.height = '580px';
+                wrapper.style.borderRadius = '20px';
+                wrapper.style.border = '5px solid #334155';
+                wrapper.style.boxShadow = '0 20px 40px -10px rgba(0, 0, 0, 0.6)';
+                showToast(currentLang === 'ar' ? 'معاينة وضع الجوال' : 'Phone Preview');
+            } else if (type === 'ipad') {
+                wrapper.style.width = '768px';
+                wrapper.style.height = '90%';
+                wrapper.style.borderRadius = '14px';
+                wrapper.style.border = '5px solid #334155';
+                wrapper.style.boxShadow = '0 20px 40px -10px rgba(0, 0, 0, 0.6)';
+                showToast(currentLang === 'ar' ? 'معاينة وضع الآيباد' : 'iPad Preview');
+            } else if (type === 'laptop') {
+                wrapper.style.width = '1024px';
+                wrapper.style.height = '90%';
+                wrapper.style.borderRadius = '10px';
+                wrapper.style.border = '4px solid #334155';
+                wrapper.style.boxShadow = '0 20px 40px -10px rgba(0, 0, 0, 0.6)';
+                showToast(currentLang === 'ar' ? 'معاينة وضع اللابتوب' : 'Laptop Preview');
+            } else {
+                wrapper.style.width = '100%';
+                wrapper.style.height = '100%';
+                wrapper.style.borderRadius = '0px';
+                wrapper.style.border = 'none';
+                wrapper.style.boxShadow = 'none';
+                showToast(currentLang === 'ar' ? 'معاينة وضع الكمبيوتر (ملء الشاشة)' : 'Desktop Preview (Fullscreen)');
+            }
+        }
+
+        function getCombinedCode() {
+            if (mode === 'triple') {
+                const h = document.getElementById('tr-html').value;
+                const c = document.getElementById('tr-css').value;
+                const j = document.getElementById('tr-js').value;
+                return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' + c + '</style></head><body>' + h + '<script>' + j + '<\/script></body></html>';
+            } else if (mode === 'single-text') {
+                return document.getElementById('st-code').value;
+            } else if (mode === 'single-file') {
+                return uploadedHtml;
+            } else if (mode === 'multi-files') {
+                return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' + multiFilesData.css + '</style></head><body>' + multiFilesData.html + '<script>' + multiFilesData.js + '<\/script></body></html>';
+            }
+            return '';
+        }
+
+        function updatePreview() {
+            document.getElementById('preview-frame').srcdoc = getCombinedCode();
+        }
+
+        // مشاركة ملف HTML متكامل يضم الستايل والسكربت بداخله باستخدام Web Share API أو التنزيل
+        async function shareProjectFile() {
+            const code = getCombinedCode();
+            const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+            const file = new File([blob], 'index.html', { type: 'text/html' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        title: 'مروع الويب',
+                        text: 'إليك ملف المشروع البرمجي',
+                        files: [file]
+                    });
+                    showToast(currentLang === 'ar' ? 'تمت مشاركة الملف بنجاح!' : 'File shared successfully!');
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        downloadFile();
+                    }
+                }
+            } else {
+                // إذا لم يدعم المتصفح مشاركة الملفات، يتم تنزيله كبديل مباشر للمشاركة
+                downloadFile();
+            }
+        }
+
+        // زر مستقل لنسخ الكود الكامل بجانب المعاينة
+        function copyFullCode() {
+            navigator.clipboard.writeText(getCombinedCode()).then(() => {
+                showToast(currentLang === 'ar' ? 'تم نسخ الكود الكامل بنجاح!' : 'Full code copied successfully!');
+            }).catch(() => alert('تعذر النسخ'));
+        }
+
+        function uploadSingleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                uploadedHtml = evt.target.result;
+                const status = document.getElementById('file-status');
+                status.innerText = (currentLang === 'ar' ? 'تم رفع: ' : 'Uploaded: ') + file.name;
+                status.classList.remove('hidden');
+                updatePreview();
+                showToast(currentLang === 'ar' ? 'تم تحميل الملف' : 'File loaded');
+            };
+            reader.readAsText(file);
+        }
+
+        function uploadMultiFile(e, type) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                multiFilesData[type] = evt.target.result;
+                const statusEl = document.getElementById('status-mf-' + type);
+                statusEl.innerText = file.name;
+                statusEl.className = "mt-2 text-xs py-1 px-2 rounded truncate text-emerald-400 font-medium";
+                updatePreview();
+                showToast((currentLang === 'ar' ? 'تم رفع ملف ' : 'Uploaded file ') + type.toUpperCase());
+            };
+            reader.readAsText(file);
+        }
+
+        function openSaveModal() {
+            const modal = document.getElementById('save-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            const nameInput = document.getElementById('project-name-input');
+            nameInput.value = (currentLang === 'ar' ? 'مشروع ' : 'Project ') + (projects.length + 1);
+            nameInput.focus();
+            nameInput.select();
+        }
+
+        function closeSaveModal() {
+            const modal = document.getElementById('save-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveCurrentProject() {
+            const nameInput = document.getElementById('project-name-input');
+            const name = nameInput.value.trim();
+            if (!name) { alert(currentLang === 'ar' ? 'الرجاء إدخال اسم المشروع أولاً' : 'Please enter project name first'); return; }
+
+            const projectData = {
+                id: Date.now(),
+                name: name,
+                mode: mode,
+                data: mode === 'triple' ? {
+                    html: document.getElementById('tr-html').value,
+                    css: document.getElementById('tr-css').value,
+                    js: document.getElementById('tr-js').value
+                } : mode === 'single-text' ? {
+                    code: document.getElementById('st-code').value
+                } : mode === 'single-file' ? {
+                    html: uploadedHtml
+                } : {
+                    multi: multiFilesData
+                },
+                date: new Date().toLocaleDateString(currentLang === 'ar' ? 'ar-SA' : 'en-US')
+            };
+
+            projects.unshift(projectData);
+            localStorage.setItem('web_projects', JSON.stringify(projects));
+            closeSaveModal();
+            renderProjects();
+            showToast(currentLang === 'ar' ? 'تم حفظ المشروع بنجاح!' : 'Project saved successfully!');
+        }
+
+        function openDeleteAllModal() {
+            if (projects.length === 0) {
+                showToast(currentLang === 'ar' ? 'لا توجد مشاريع للحذف' : 'No projects to delete');
+                return;
+            }
+            const modal = document.getElementById('delete-all-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDeleteAllModal() {
+            const modal = document.getElementById('delete-all-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmDeleteAllProjects() {
+            projects = [];
+            localStorage.removeItem('web_projects');
+            closeDeleteAllModal();
+            renderProjects();
+            showToast(currentLang === 'ar' ? 'تم حذف كافة المشاريع بنجاح' : 'All projects deleted successfully');
+        }
+
+        function renderProjects(filter = '') {
+            const listEl = document.getElementById('projects-list');
+            const countEl = document.getElementById('projects-count');
+            const filtered = projects.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
+            countEl.innerText = filtered.length;
+
+            if (filtered.length === 0) {
+                const emptyText = translations[currentLang].no_saved_projects;
+                listEl.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 text-xs">${emptyText}</div>`;
+                return;
+            }
+
+            const cardBg = currentTheme === 'light' ? 'bg-white border-slate-200 hover:border-slate-300' : 'bg-slate-950 border-slate-800 hover:border-slate-700';
+            const btnBg = currentTheme === 'light' ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-900 text-slate-400';
+            const titleColor = currentTheme === 'light' ? 'text-slate-900' : 'text-white';
+
+            listEl.innerHTML = filtered.map(p => `
+                <div class="${cardBg} border p-3 rounded-xl flex items-center justify-between transition group">
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="deleteProject(${p.id})" class="p-1.5 ${btnBg} hover:bg-red-600/20 hover:text-red-400 rounded-lg text-xs transition cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
+                        <button type="button" onclick="loadProject(${p.id})" class="p-1.5 ${btnBg} hover:bg-indigo-600/20 hover:text-indigo-400 rounded-lg text-xs transition cursor-pointer"><i class="fa-solid fa-folder-open"></i></button>
+                    </div>
+                    <div class="cursor-pointer flex-1 truncate text-right ml-2" onclick="loadProject(${p.id})">
+                        <h4 class="font-bold text-xs ${titleColor} truncate group-hover:text-indigo-400 transition">${p.name}</h4>
+                        <span class="text-[10px] text-slate-500">${p.date} • ${p.mode}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterProjects() {
+            renderProjects(document.getElementById('search-input').value);
+        }
+
+        function loadProject(id) {
+            const p = projects.find(item => item.id === id);
+            if (!p) return;
+            changeMode(p.mode);
+            document.getElementById('mode-select').value = p.mode;
+
+            if (p.mode === 'triple') {
+                document.getElementById('tr-html').value = p.data.html || '';
+                document.getElementById('tr-css').value = p.data.css || '';
+                document.getElementById('tr-js').value = p.data.js || '';
+            } else if (p.mode === 'single-text') {
+                document.getElementById('st-code').value = p.data.code || '';
+            } else if (p.mode === 'single-file') {
+                uploadedHtml = p.data.html || '';
+            } else if (p.mode === 'multi-files') {
+                multiFilesData = p.data.multi || { html: '', css: '', js: '' };
+            }
+            updatePreview();
+            showToast((currentLang === 'ar' ? 'تم تحميل: ' : 'Loaded: ') + p.name);
+            switchTab('code');
+        }
+
+        function deleteProject(id) {
+            if (confirm(currentLang === 'ar' ? 'هل أنت متأكد من حذف هذا المشروع؟' : 'Are you sure you want to delete this project?')) {
+                projects = projects.filter(item => item.id !== id);
+                localStorage.setItem('web_projects', JSON.stringify(projects));
+                renderProjects();
+                showToast(currentLang === 'ar' ? 'تم حذف المشروع' : 'Project deleted');
+            }
+        }
+
+        function switchTab(view) {
+            const codeP = document.getElementById('pane-code');
+            const projP = document.getElementById('pane-projects');
+            const prevP = document.getElementById('pane-preview');
+            const tabC = document.getElementById('tab-code');
+            const tabPr = document.getElementById('tab-projects');
+            const tabPv = document.getElementById('tab-preview');
+
+            [codeP, projP, prevP].forEach(p => { p.classList.add('hidden'); p.classList.remove('flex'); });
+            
+            const inactiveTabClass = currentTheme === 'light' 
+                ? 'px-2.5 sm:px-3 py-1 rounded-md text-[10px] sm:text-[11px] font-medium text-slate-700 hover:text-slate-900 cursor-pointer transition' 
+                : 'px-2.5 sm:px-3 py-1 rounded-md text-[10px] sm:text-[11px] font-medium text-slate-400 cursor-pointer transition';
+
+            [tabC, tabPr, tabPv].forEach(t => { t.className = inactiveTabClass; });
+
+            if (view === 'code') {
+                codeP.classList.remove('hidden'); codeP.classList.add('flex');
+                tabC.className = 'px-2.5 sm:px-3 py-1 rounded-md text-[10px] sm:text-[11px] font-medium bg-indigo-600 text-white transition cursor-pointer';
+            } else if (view === 'projects') {
+                projP.classList.remove('hidden'); projP.classList.add('flex');
+                tabPr.className = 'px-2.5 sm:px-3 py-1 rounded-md text-[10px] sm:text-[11px] font-medium bg-indigo-600 text-white transition cursor-pointer';
+            } else {
+                prevP.classList.remove('hidden'); prevP.classList.add('flex');
+                tabPv.className = 'px-2.5 sm:px-3 py-1 rounded-md text-[10px] sm:text-[11px] font-medium bg-indigo-600 text-white transition cursor-pointer';
+                updatePreview();
+            }
+        }
+
+        function downloadFile() {
+            const blob = new Blob([getCombinedCode()], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'index.html';
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            showToast(currentLang === 'ar' ? 'جاري التنزيل...' : 'Downloading...');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = msg;
+            t.classList.remove('opacity-0', 'pointer-events-none');
+            t.classList.add('opacity-100');
+            setTimeout(() => {
+                t.classList.remove('opacity-100');
+                t.classList.add('opacity-0', 'pointer-events-none');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
